@@ -1,1 +1,1 @@
-# PurdueCS324-LSST
+# PurduePHYS324-LSST
