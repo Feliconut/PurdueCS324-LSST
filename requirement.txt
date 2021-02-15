@@ -1,1 +1,6 @@
 antares-client
+pandas
+numpy
+matplotlib
+jdcal
+urllib3
