@@ -24,6 +24,7 @@ query = {
 # %%
 from antares_client.search import search
 
+
 # Simple Filter
 def filter_search(query, *criteria, debug=False):
     i = 0
@@ -31,7 +32,7 @@ def filter_search(query, *criteria, debug=False):
     for locus in sr:
         i += 1
         for crit in criteria:
-            if crit(locus):
-                if debug: print(f'passed {i} loci')
-                yield locus
-                i = 0
+            if not crit(locus): continue
+        if debug: print(f'passed {i} loci')
+        yield locus
+        i = 0

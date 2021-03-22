@@ -4,3 +4,4 @@ numpy
 matplotlib
 jdcal
 urllib3
+pyarrow
