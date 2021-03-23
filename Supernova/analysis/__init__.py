@@ -1,0 +1,1 @@
+from .peaks import find_maxima, find_minima, visualize_max_min
