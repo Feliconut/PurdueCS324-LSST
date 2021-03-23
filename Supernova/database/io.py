@@ -1,9 +1,26 @@
+"""
+Local Storage of Locus, Lightcurve and Alert.
+
+@Author: Xiaoyu Liu
+"""
+
 from os.path import join
 from antares_client._api.models import Locus, Alert
 from antares_client import search
 from pandas.io.feather_format import read_feather
 
 DATA_PATH = './DATA'
+keep_alerts = True
+
+
+def alerts_on():
+    global keep_alerts
+    keep_alerts = True
+
+
+def alerts_off():
+    global keep_alerts
+    keep_alerts = False
 
 
 def encode_alert(alert: Alert):
@@ -16,12 +33,14 @@ def encode_alert(alert: Alert):
 
 
 def encode_locus(locus: Locus):
-    for alert in locus.alerts:
-        add_alert(alert)
+    if keep_alerts:
+        for alert in locus.alerts:
+            add_alert(alert)
     add_lightcurve(locus)
     return (
         f'Locus('+\
-            f'alerts=[fetch_alert(alert_id) for alert_id in {repr([alert.alert_id for alert in locus.alerts])}],'+\
+            (f'alerts=[fetch_alert(alert_id) for alert_id in {repr([alert.alert_id for alert in locus.alerts])}],' \
+                if keep_alerts else 'alerts=[],')+\
             f'catalog_objects={repr(locus.catalog_objects)},'+\
             f'catalogs={repr(locus.catalogs)},'+\
             f'dec={repr(locus.dec)},'+\

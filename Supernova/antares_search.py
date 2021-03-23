@@ -22,17 +22,16 @@ query = {
     }
 }
 # %%
+from typing import Generator
+from antares_client._api.models import Locus
 from antares_client.search import search
+from marshmallow.fields import Boolean, Function, List
 
+def default_search():
+    return search(query)
 
-# Simple Filter
-def filter_search(query, *criteria, debug=False):
-    i = 0
-    sr = search(query)
-    for locus in sr:
-        i += 1
+def apply_filters(stream:Generator[Locus, None, None], *criteria):
+    for locus in stream:
         for crit in criteria:
             if not crit(locus): continue
-        if debug: print(f'passed {i} loci')
         yield locus
-        i = 0

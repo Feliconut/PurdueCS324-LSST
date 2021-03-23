@@ -19,6 +19,11 @@ __new_folder('DATA')
 __new_folder('DATA/alerts')
 __new_folder('DATA/lightcurves')
 __new_folder('DATA/loci')
+
+with open('DATA/.gitignore', 'w+') as f:
+    f.write('*')
+
 print('Supernovae Database Initialization Successful')
 
-from .io import add_locus, fetch_locus
+from .io import add_locus, fetch_locus, fetch_lightcurve, fetch_alert
+from .search import all_lightcurves, all_loci
