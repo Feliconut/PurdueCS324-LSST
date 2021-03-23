@@ -1,0 +1,10 @@
+Pandas
+matplotlib
+scipy
+numpy
+antares-client
+lmfit
+george
+os
+astropy
+random
