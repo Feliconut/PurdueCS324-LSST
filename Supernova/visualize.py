@@ -16,7 +16,7 @@ def info(locus: Locus):
     _julian_dates = lc['ant_mjd']
     date_range = _julian_dates.max() - _julian_dates.min()
 
-    print(f'We have {_ulim_and_candidate - _candidate} limit alerts ' +
+    print(f'Locus {locus.locus_id} have {_ulim_and_candidate - _candidate} limit alerts ' +
           f'and {_candidate} candidate alerts.')
     print(f'This event ranges {date_range:.2f} days.')
 
