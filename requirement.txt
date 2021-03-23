@@ -5,3 +5,5 @@ matplotlib
 jdcal
 urllib3
 pyarrow
+lmfit
+george
