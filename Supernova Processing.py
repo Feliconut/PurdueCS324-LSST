@@ -229,7 +229,7 @@ def GaussianRegression(DataFrame, Graph=False, classification = False):
     return GaussianFitted
 
 #%%
-def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification = False):
+def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, classification = False):
     """
     
 
@@ -258,13 +258,13 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
 
     if Bounds == None:
         Function_Parameters = pd.DataFrame(columns = ["band", 'A', 'B', 't_int', 't_fall', 't_rise', 'class'])
-
-        GF = GaussianRegression(Data)
-        GF_uqlst = GF['event'].unique()
+        Data_uqlst = Data['event'].unique()
+        for i in Data_uqlst:
+            GaussianFitted = GaussianRegression(Data)
         
         
-        for i in GF_uqlst:
-            GaussianFitted = GF[GF['event']==i]
+        
+    
             def Lightcurve(x, A, B, t_int, t_fall, t_rise):
                 """1-d Lightcurve: Lightcurve(x, A, B, t_int, t_fall, t_rise)"""
                 return A*((np.exp(-1*(x - t_int)/t_fall))/(1 + np.exp((x - t_int)/t_rise))) + B
@@ -275,7 +275,7 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
             PurityFill = 0 #another filter value
             
             for Band in Uqe_Bands:
-                if Classification == True:
+                if classification == True:
                     Class = GaussianFitted[GaussianFitted['band']==Band]['class']
                 
                 x = GaussianFitted[GaussianFitted['band']==Band]['mjd'].astype(float)  #Creates x for fitting estimants
@@ -288,32 +288,32 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
                 yt.append(y.max()) #appends fitting estimant list
             MX = xt[yt.index(max(yt))] #finds the highest of the fitting estimants time
             MMX = max(yt) #Sets filter value
-
+    
                 
             for UBand in Uqe_Bands: #Begin fitting one supernova
-                if GaussianFitted[GaussianFitted['band']==UBand].empty==False and len(GaussianFitted[GaussianFitted['band']==UBand]['mjd'])>=5: #Begin fitting one band
+                #if GaussianFitted[GaussianFitted['band']==UBand].empty==False and len(GaussianFitted[GaussianFitted['band']==UBand]['mjd'])>=5: #Begin fitting one band
                     
-                    if Classification == True:
-                        Class = GaussianFitted[GaussianFitted['band']==UBand]['class']
-                    
-                    x = GaussianFitted[GaussianFitted['band']==UBand]['mjd'].astype(float) #Sets x for fitting
-                    y = GaussianFitted[GaussianFitted['band']==UBand]['magnitude'].astype(float) #Sets y for fitting
-                    y_err = GaussianFitted[GaussianFitted['band']==UBand]['error'].astype(float) #Sets y_err for fitting
-                    df2 = GaussianFitted[GaussianFitted['band']==UBand].copy() #Copys band for Chi^2 calculation
-                    lcmodel = lmfit.Model(Lightcurve, nan_policy='propagate') #Sets the fitting to the lightcurve shape and sets failed fits to return NAN rather than crash
-                    lcmodel.set_param_hint('A', min=-(y.max()*10), max=0, value=-abs(y.min()-y.max())) #Sets guess for amplitude
-                    lcmodel.set_param_hint('B', min=y.max(), value=y.max()+.5) #Sets guess for y-axis shift or baseline
-                    lcmodel.set_param_hint('t_int', min = x.min()-100, max=x.max(), value=MX-10) #Sets the time initial value which falls just before the maximum
-                    lcmodel.set_param_hint('t_fall', min= 0, value=TFI) #Sets the fall time
-                    lcmodel.set_param_hint('t_rise', max= 0, value=TRI) #Sets the rise time
-                    result = lcmodel.fit(y, x=x) #Outputs restults of the fit
-                    CST = result.best_values
-                    AA = CST['A'] #Sets the initial fit values to the weighted fit guesses
-                    BB = CST['B']
-                    TI = CST['t_int']
-                    TF = CST['t_fall']
-                    TR = CST['t_rise']
-                            
+                if classification == True:
+                    Class = GaussianFitted[GaussianFitted['band']==UBand]['class']
+                
+                x = GaussianFitted[GaussianFitted['band']==UBand]['mjd'].astype(float) #Sets x for fitting
+                y = GaussianFitted[GaussianFitted['band']==UBand]['magnitude'].astype(float) #Sets y for fitting
+                y_err = GaussianFitted[GaussianFitted['band']==UBand]['error'].astype(float) #Sets y_err for fitting
+                df2 = GaussianFitted[GaussianFitted['band']==UBand].copy() #Copys band for Chi^2 calculation
+                lcmodel = lmfit.Model(Lightcurve, nan_policy='propagate') #Sets the fitting to the lightcurve shape and sets failed fits to return NAN rather than crash
+                lcmodel.set_param_hint('A', min=-(y.max()*10), max=0, value=-abs(y.min()-y.max())) #Sets guess for amplitude
+                lcmodel.set_param_hint('B', min=y.max(), value=y.max()+.5) #Sets guess for y-axis shift or baseline
+                lcmodel.set_param_hint('t_int', min = x.min()-100, max=x.max(), value=MX-10) #Sets the time initial value which falls just before the maximum
+                lcmodel.set_param_hint('t_fall', min= 0, value=TFI) #Sets the fall time
+                lcmodel.set_param_hint('t_rise', max= 0, value=TRI) #Sets the rise time
+                result = lcmodel.fit(y, x=x) #Outputs restults of the fit
+                CST = result.best_values
+                AA = CST['A'] #Sets the initial fit values to the weighted fit guesses
+                BB = CST['B']
+                TI = CST['t_int']
+                TF = CST['t_fall']
+                TR = CST['t_rise']
+                        
                 if Graph == True:
                     time=np.linspace(x.min(), x.max(), 100)
                     LC = (AA*((np.exp(-1*(time-TI)/TF))/(1+np.exp((time-TI)/TR)))+BB)
@@ -351,21 +351,20 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
                 Features['t_fall'] = Feat4
                 Features['t_rise'] = Feat5
                 Features['band'] = Feat6
-                if Classification == True:
+                if classification == True:
                     Features['class'] = Class.unique()[0]
                 
                 Function_Parameters = pd.concat([Function_Parameters, Features], axis =0 )
                 #if Function_Parameters['class'].unique()[0] == np.nan:
                     #Function_Parameters =Function_Parameters.drop(['class'],axis=1)
+                print(Function_Parameters)
     else:
         Function_Parameters = pd.DataFrame(columns = ["band", 'A', 'B', 't_int', 't_fall', 't_rise', 'class'])
 
-        GF = GaussianRegression(Data)
-        GF_uqlst = GF['event'].unique()
+        Data_uqlst = Data['event'].unique()
+        for i in Data_uqlst:
+            GaussianFitted = GaussianRegression(Data)
         
-        
-        for i in GF_uqlst:
-            GaussianFitted = GF[GF['event']==i]
             def Lightcurve(x, A, B, t_int, t_fall, t_rise):
                 """1-d Lightcurve: Lightcurve(x, A, B, t_int, t_fall, t_rise)"""
                 return A*((np.exp(-1*(x - t_int)/t_fall))/(1 + np.exp((x - t_int)/t_rise))) + B
@@ -376,7 +375,7 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
             PurityFill = 0 #another filter value
             
             for Band in Uqe_Bands:
-                if Classification == True:
+                if classification == True:
                     Class = GaussianFitted[GaussianFitted['band']==Band]['class']
                 x = GaussianFitted[GaussianFitted['band']==Band]['mjd'].astype(float)  #Creates x for fitting estimants
                 y = GaussianFitted[GaussianFitted['band']==Band]['magnitude'].astype(float) #Creates y for fitting
@@ -390,7 +389,7 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
             MMX = max(yt) #Sets filter value
             for UBand in Uqe_Bands: #Begin fitting one supernova
                 if GaussianFitted[GaussianFitted['band']==UBand].empty==False and len(GaussianFitted[GaussianFitted['band']==UBand]['mjd'])>=5: #Begin fitting one band
-                    if Classification == True:
+                    if classification == True:
                         Class = GaussianFitted[GaussianFitted['band']==UBand]['class']
                     
                     
@@ -449,7 +448,7 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, Classification =
                 Features['t_fall'] = Feat4
                 Features['t_rise'] = Feat5
                 Features['band'] = Feat6
-                if Classification == True:
+                if classification == True:
                     Features['class'] = Class.unique()[0]
                 
                 Function_Parameters = pd.concat([Function_Parameters, Features], axis =0 )
