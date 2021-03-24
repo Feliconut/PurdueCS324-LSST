@@ -260,7 +260,7 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, classification =
         Function_Parameters = pd.DataFrame(columns = ["band", 'A', 'B', 't_int', 't_fall', 't_rise', 'class'])
         Data_uqlst = Data['event'].unique()
         for i in Data_uqlst:
-            GaussianFitted = GaussianRegression(Data)
+            GaussianFitted = GaussianRegression(Data[Data['event']==i])
         
         
         
@@ -357,13 +357,12 @@ def Fit(Data, Bounds = None, Graph = False, TFI = 10, TRI = -2, classification =
                 Function_Parameters = pd.concat([Function_Parameters, Features], axis =0 )
                 #if Function_Parameters['class'].unique()[0] == np.nan:
                     #Function_Parameters =Function_Parameters.drop(['class'],axis=1)
-                print(Function_Parameters)
+                
     else:
         Function_Parameters = pd.DataFrame(columns = ["band", 'A', 'B', 't_int', 't_fall', 't_rise', 'class'])
-
         Data_uqlst = Data['event'].unique()
         for i in Data_uqlst:
-            GaussianFitted = GaussianRegression(Data)
+            GaussianFitted = GaussianRegression(Data[Data['event']==i])
         
             def Lightcurve(x, A, B, t_int, t_fall, t_rise):
                 """1-d Lightcurve: Lightcurve(x, A, B, t_int, t_fall, t_rise)"""
