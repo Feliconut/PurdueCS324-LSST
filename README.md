@@ -15,3 +15,21 @@ Jupyter Notebook is great for preserving outputs. The Interactive Shell in VSCod
 
 ### Testing
 
+No test cases for now. Maybe you can try running `example.py` as a test.
+
+## Development
+
+### Code
+
+Each task (for example, the GPR model) is realized in a single `.py` file in the root directory.
+By doing this, the package `Supernova` can be directly imported without having to install it.
+
+If something is replicable, it can be refactored into the package `Supernova`.
+
+### Assets
+
+All assets are organized in `src`.
+
+## Documentation
+
+Documentation for package `Supernova` is at `.doc`.

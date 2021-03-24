@@ -5,6 +5,7 @@ from antares_client._api.models import Locus
 
 # %%
 def info(locus: Locus):
+    'Prints a summary sentence for this locus.'
     lc = locus.lightcurve
 
     # two types of alert_id: upper_limit and candidate.
@@ -16,8 +17,10 @@ def info(locus: Locus):
     _julian_dates = lc['ant_mjd']
     date_range = _julian_dates.max() - _julian_dates.min()
 
-    print(f'Locus {locus.locus_id} have {_ulim_and_candidate - _candidate} limit alerts ' +
-          f'and {_candidate} candidate alerts.')
+    print(
+        f'Locus {locus.locus_id} have {_ulim_and_candidate - _candidate} limit alerts '
+        + f'and {_candidate} candidate alerts.',
+        end='')
     print(f'This event ranges {date_range:.2f} days.')
 
 

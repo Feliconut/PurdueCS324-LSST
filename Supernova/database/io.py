@@ -14,11 +14,13 @@ keep_alerts = True
 
 
 def alerts_on():
+    "Start saving alerts on local machine. This is the default."
     global keep_alerts
     keep_alerts = True
 
 
 def alerts_off():
+    "Stop saving alerts on local machine. Speeds up saving and loading a lot."
     global keep_alerts
     keep_alerts = False
 

@@ -5,12 +5,16 @@ This file shows most functions of the package Supernova.
 # %%
 from Supernova import database as db
 from Supernova import filter
-from Supernova.antares_search import apply_filters, default_search
+from Supernova.antares_search import default_search
 from Supernova.visualize import info, plt_lightcurve
 
 # %%
 db.io.alerts_off()
-filtered_search = apply_filters(default_search(), filter.date_range)
+filtered_search = filter.apply(
+    default_search(), 
+    filter.date_range(200),
+    filter.lightcurve_datapoints(50)
+    )
 # %%
 # Saving Locus
 for i in range(10):
