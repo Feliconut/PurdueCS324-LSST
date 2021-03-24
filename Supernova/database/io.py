@@ -4,7 +4,8 @@ Local Storage of Locus, Lightcurve and Alert.
 @Author: Xiaoyu Liu
 """
 
-from os.path import join
+from os import fspath
+from os.path import join, exists
 from antares_client._api.models import Locus, Alert
 from antares_client import search
 from pandas.io.feather_format import read_feather
@@ -57,40 +58,47 @@ def encode_locus(locus: Locus):
         ')'.replace('\n', ''))
 
 
-def add_locus(locus: Locus):
-    with open(join(DATA_PATH, 'loci', locus.locus_id), 'w+') as f:
+def add_locus(locus: Locus, replace=False):
+    fpath = join(DATA_PATH, 'loci', locus.locus_id)
+    if not replace and exists(fpath): return
+    with open(fpath, 'w+') as f:
         f.write(encode_locus(locus))
 
 
-def add_alert(alert: Alert):
-    with open(join(DATA_PATH, 'alerts', alert.alert_id.replace(':', '')),
-              'w+') as f:
+def add_alert(alert: Alert, replace=False):
+    fpath = join(DATA_PATH, 'alerts', alert.alert_id.replace(':', ''))
+    if not replace and exists(fpath): return
+    with open(fpath, 'w+') as f:
         f.write(encode_alert(alert))
 
 
-def add_lightcurve(locus: Locus):
-    locus.lightcurve.to_feather(
-        join(DATA_PATH, 'lightcurves', locus.locus_id + '.lc'))
+def add_lightcurve(locus: Locus, replace=False):
+    fpath = join(DATA_PATH, 'lightcurves', locus.locus_id + '.lc')
+    if not replace and exists(fpath): return
+    locus.lightcurve.to_feather(fpath)
 
 
-def fetch_locus(locus_id):
+def fetch_locus(locus_id, try_remote=True):
     try:
         with open(join(DATA_PATH, 'loci', locus_id), 'r') as f:
             return eval(f.read())
     except FileNotFoundError:
-        print(f'Locus {locus_id} not found in local. Trying remote.')
-        try:
-            res = search.get_by_id(locus_id)
-            if res:
-                add_locus(res)
-                return res
-            res = search.get_by_ztf_object_id(locus_id)
-            if res:
-                add_locus(res)
-                return res
-        except Exception:
-            pass
-    raise KeyError(f'Locus {locus_id} not found in remote.')
+        if try_remote:
+            print(f'Locus {locus_id} not found in local. Trying remote.')
+            try:
+                res = search.get_by_id(locus_id)
+                if res:
+                    add_locus(res)
+                    return res
+                res = search.get_by_ztf_object_id(locus_id)
+                if res:
+                    add_locus(res)
+                    return res
+            except Exception:
+                pass
+            raise KeyError(f'Locus {locus_id} not found in remote.')
+        else:
+            raise KeyError(f'Locus {locus_id} not found in local.')
 
 
 def fetch_alert(alert_id):
@@ -99,8 +107,7 @@ def fetch_alert(alert_id):
                   'r') as f:
             return eval(f.read())
     except FileNotFoundError:
-        pass
-    raise KeyError(f'Alert {alert_id} not found in local.')
+        raise KeyError(f'Alert {alert_id} not found in local.')
 
 
 def fetch_lightcurve(locus_id):
