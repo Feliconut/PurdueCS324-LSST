@@ -5,6 +5,7 @@ from os import listdir
 from os.path import join
 from .io import DATA_PATH, fetch_lightcurve, fetch_locus
 
+
 def all_loci():
     """
     Iterates Through all local locus.
@@ -16,6 +17,7 @@ def all_loci():
             yield fetch_locus(fname)
         except Exception as e:
             print(f'{repr(e)} fetching {fname}')
+
 
 def all_lightcurves():
     """
@@ -30,3 +32,10 @@ def all_lightcurves():
             yield fetch_lightcurve(locus_id)
         except Exception as e:
             print(f'{repr(e)} fetching {fname}')
+
+
+def make_antares_ztf_dict():
+    result = dict()
+    for locus in all_loci():
+        result.setdefault(locus.locus_id, locus.properties['ztf_object_id'])
+    return result

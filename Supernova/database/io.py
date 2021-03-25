@@ -3,15 +3,15 @@ Local Storage of Locus, Lightcurve and Alert.
 
 @Author: Xiaoyu Liu
 """
-
-from os import fspath
 from os.path import join, exists
+from os import remove
 from antares_client._api.models import Locus, Alert
 from antares_client import search
 from pandas.io.feather_format import read_feather
 
 DATA_PATH = './DATA'
 keep_alerts = True
+_antares_ztf_dict = dict()
 
 
 def alerts_on():
@@ -59,10 +59,13 @@ def encode_locus(locus: Locus):
 
 
 def add_locus(locus: Locus, replace=False):
+    assert isinstance(locus, Locus)
     fpath = join(DATA_PATH, 'loci', locus.locus_id)
     if not replace and exists(fpath): return
     with open(fpath, 'w+') as f:
         f.write(encode_locus(locus))
+    _antares_ztf_dict.setdefault(locus.locus_id,
+                                 locus.properties['ztf_object_id'])
 
 
 def add_alert(alert: Alert, replace=False):
@@ -78,13 +81,20 @@ def add_lightcurve(locus: Locus, replace=False):
     locus.lightcurve.to_feather(fpath)
 
 
-def fetch_locus(locus_id, try_remote=True):
+def fetch_locus(locus_id, try_remote=True, debug=False):
     try:
+        for k, v in _antares_ztf_dict.items():
+            if locus_id == v:
+                locus_id = k
         with open(join(DATA_PATH, 'loci', locus_id), 'r') as f:
-            return eval(f.read())
+            res = eval(f.read())
+            assert isinstance(res, Locus)
+            if debug: print(f'Locus {locus_id} found on local.')
+            return res
     except FileNotFoundError:
         if try_remote:
-            print(f'Locus {locus_id} not found in local. Trying remote.')
+            if debug:
+                print(f'Locus {locus_id} not found in local. Trying remote.')
             try:
                 res = search.get_by_id(locus_id)
                 if res:
@@ -96,10 +106,14 @@ def fetch_locus(locus_id, try_remote=True):
                     return res
             except Exception:
                 pass
-            raise KeyError(f'Locus {locus_id} not found in remote.')
+            raise KeyError(f'Locus {locus_id} not found in local or remote.')
         else:
             raise KeyError(f'Locus {locus_id} not found in local.')
-
+    except SyntaxError:
+        # Invalid File Format.
+        print(f'local storage invalid. remove and retry.')
+        remove_locus(locus_id)
+        return fetch_locus(locus_id, try_remote, debug)
 
 def fetch_alert(alert_id):
     try:
@@ -108,7 +122,26 @@ def fetch_alert(alert_id):
             return eval(f.read())
     except FileNotFoundError:
         raise KeyError(f'Alert {alert_id} not found in local.')
-
+    except SyntaxError:
+        print(f'local storage invalid. remove and retry.')
+        remove_alert(alert_id)
 
 def fetch_lightcurve(locus_id):
     return read_feather(join(DATA_PATH, 'lightcurves', locus_id + '.lc'))
+
+
+def reindex():
+    global _antares_ztf_dict
+    from .search import make_antares_ztf_dict
+    _antares_ztf_dict = make_antares_ztf_dict()
+
+
+def remove_locus(locus_id):
+    fpath = join(DATA_PATH, 'loci', locus_id)
+    remove(fpath)
+
+
+def remove_lightcurve(locus_id):
+    fpath = join(DATA_PATH, 'lightcurves', locus_id, '.lc')
+    remove(fpath)
+
