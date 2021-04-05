@@ -2,6 +2,9 @@
 In this project, I try to find the best differentiator between SN and NON-SN.
 
 Then I turn this into a filter that produces high-quality stream of unclassified events.
+
+@author Xiaoyu Liu
+@date Apr 6 2021
 """
 
 # %%
@@ -77,6 +80,7 @@ def feature_hist(feature,
 # %%
 SNR_hist = partial(feature_hist, locus_snr, clip_range=[0, 0.5])
 
+
 def plt_all_types(plot_func):
     plot_func('Ia', color='green')
     plot_func('Ib', color='yellow')
@@ -84,17 +88,19 @@ def plt_all_types(plot_func):
     plot_func('IIb', color='grey')
     plot_func('IIn', color='pink')
     plot_func('IIp', color='orange')
-    plot_func('bogus_manual', color='red',alpha=0.5)
+    plot_func('bogus_manual', color='red', alpha=0.5)
 
-plt_all_types(SNR_hist)
 
-plt.legend()
-plt.title('SNR (diff lc) for each type')
-plt.show()
+if __name__ == '__main__':
+    plt_all_types(SNR_hist)
+
+    plt.legend()
+    plt.title('SNR (diff lc) for each type')
+    plt.show()
 
 
 # %%
-def linear_fitting(locus: Locus):
+def locus_linear_slope(locus: Locus):
     from scipy.stats import linregress
 
     def surpress_error(f, val=0):
@@ -132,11 +138,50 @@ def linear_fitting(locus: Locus):
     # return res
 
 
-linear_hist = partial(feature_hist, linear_fitting, clip_range=[0, 0.02])
-plt_all_types(linear_hist)
-plt.legend()
-plt.title('linear slope')
+linear_hist = partial(feature_hist, locus_linear_slope, clip_range=[0, 0.02])
 
-plt.show()
+if __name__ == '__main__':
+    plt_all_types(linear_hist)
+    plt.legend()
+    plt.title('linear slope')
+
+    plt.show()
+
+
+# %% correlation between SNR and slope
+def feature_scatter(
+    feature,
+    locusType,
+    color='green',
+    alpha=0.3,
+):
+    res = feature_func(feature)(locusType)  # this returns a list of 2-tuples
+    plt.scatter(
+        *list(zip(*res)),
+        color=color,
+        alpha=alpha,
+        label=locusType,
+    )
+
+
+def snr_and_linear(locus):
+    return locus_snr(locus), locus_linear_slope(locus)
+
+
+snr_linear_scatter = partial(feature_scatter, snr_and_linear)
+
+if __name__ == '__main__':
+
+    plt_all_types(snr_linear_scatter)
+
+    plt.xlim(0, .75)
+    plt.ylim(0, .025)
+    plt.legend()
+    plt.title('snr vs slope')
+    plt.xlabel('snr')
+    plt.ylabel('slope')
+    plt.show()
 
 # %%
+
+# Result: Tentatively set bogus criterion to be slope < 0.0025 and snr < 0.3

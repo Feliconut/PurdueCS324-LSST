@@ -33,10 +33,19 @@ def extract_info(lightcurve: DataFrame, band: Band, alertType: AlertType):
                 ]
             ])
 
-
     lc['ant_mjd'] -= lc['ant_mjd'].min()
 
     lc = lc.reset_index(drop=True)
-    lc = lc.rename(columns={'ant_mjd':'mjd','ant_mag':'mag','ant_magerr':'err'})
+    lc = lc.rename(columns={
+        'ant_mjd': 'mjd',
+        'ant_mag': 'mag',
+        'ant_magerr': 'err'
+    })
     return lc
+
+
 # %%
+def get_date_range(lc):
+    _julian_dates = lc['ant_mjd']
+    duration = _julian_dates.max() - _julian_dates.min()
+    return duration
