@@ -1,8 +1,6 @@
+from Supernova.database.io import fetch_locus
 from typing import Iterable
 from antares_client._api.models import Locus
-from matplotlib.colors import is_color_like
-from Supernova.database.io import fetch_locus
-from genericpath import exists
 from os.path import join
 from os import listdir, remove
 
@@ -59,8 +57,12 @@ class Collection():
         return len(self.locus_ids)
 
     def __iter__(self):
+        from ..database.io import fetch_locus
         for name in self.locus_ids:
-            yield fetch_locus(name)
+            try:
+                yield fetch_locus(name)
+            except KeyError:
+                print(f'Locus {name} skipped due to fail of fetching.')
 
     def __repr__(self):
         return (
@@ -69,6 +71,16 @@ class Collection():
         f'doc={repr(self.doc)},'+\
         f'locus_ids={repr(self.locus_ids)},'+\
         ')'.replace('\n', ''))
+
+    def pack(self):
+        return pack(self)
+
+    def __getitem__(self, index):
+        for i in list(self.locus_ids)[index]:
+            yield fetch_locus(i)
+
+    def __contains__(self, locus: Locus):
+        return locus.locus_id in self.locus_ids
 
 
 def fetch_collection(name):
@@ -92,3 +104,9 @@ def remove_collection(name):
         remove(fpath)
     except FileNotFoundError:
         print(name, ' is alread removed, or does not exist.')
+
+
+def pack(collection: Collection):
+    """Pack up all locus data in the collection in a .npz file"""
+    from ..database.pack import pack
+    pack(collection.name, collection.locus_ids)

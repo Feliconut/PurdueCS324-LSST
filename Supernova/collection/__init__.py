@@ -15,6 +15,6 @@ def __new_folder(path):
 
 __new_folder('src')
 __new_folder('src/collections')
-print('Supernovae Database Initialization Successful')
+print('Supernovae Collections Initialization Successful')
 
 from .io import Collection, fetch_collection, remove_collection

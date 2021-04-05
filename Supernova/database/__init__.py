@@ -23,8 +23,11 @@ __new_folder('DATA/loci')
 with open('DATA/.gitignore', 'w+') as f:
     f.write('*')
 
-print('Supernovae Database Initialization Successful')
-
 from .io import add_locus, fetch_locus, fetch_lightcurve, fetch_alert, reindex as __reindex
 from .search import all_lightcurves, all_loci
-__reindex()
+from .compress import pack, unpack
+
+print('Building Index...')
+# __reindex()
+
+print('Supernovae Database Initialization Successful')
