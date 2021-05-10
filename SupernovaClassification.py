@@ -34,6 +34,14 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.ensemble import RandomForestClassifier
+from imblearn.over_sampling import BorderlineSMOTE 
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import MinMaxScaler
+from sklearn import datasets, metrics, model_selection, svm
+from sklearn.model_selection import RepeatedStratifiedKFold
+from imblearn.ensemble import BalancedRandomForestClassifier
 
 
 
@@ -476,7 +484,8 @@ class ZTFData:
                 continue
             
             GaussianFitted = Gaussian[Gaussian['event']==i]
-                
+            
+            
                 
             if classification == True:
                 Class = GaussianFitted['class']
@@ -487,6 +496,8 @@ class ZTFData:
             signal = y.values.squeeze()
             if len(signal) == 0:
                 continue
+            from scipy import integrate
+            Area = integrate.simpson(y, x)
             
             ca = np.array(pywt.swt(np.array(signal), WaveletType, level = 2, axis = 0))
 
@@ -496,7 +507,8 @@ class ZTFData:
             
             Features = pd.DataFrame(data = {'event': str(i), 
                                             'delta':y.values.max()-y.values.min(), 'variance':y.var(), 
-                                            'duration': max(Data[Data['event']==i]['mjd'])-min(Data[Data['event']==i]['mjd'])}, index=[0])
+                                            'duration': max(Data[Data['event']==i]['mjd'])-min(Data[Data['event']==i]['mjd']),
+                                            'area':Area}, index=[0])
             if classification == True:
                 Features['class'] = Class.unique()[0]
 
@@ -549,7 +561,7 @@ class ZTFData:
         
         Coefficients = pd.concat([pd.DataFrame(data=labels),pd.DataFrame(data=Coefficients)],axis=1)
 
-        Coeff = Coefficients.iloc[:,5:]
+        Coeff = Coefficients.iloc[:,6:]
         
         pca = PCA(n_components = n, whiten = True)
         if smot == True:
@@ -606,14 +618,14 @@ class ZTFData:
         Coefficients = pd.concat([pd.DataFrame(data=labels),pd.DataFrame(data=Coefficients)],axis=1)
 
         GBand, RBand = Coefficients[Coefficients['band']==357.0].reset_index(drop=True), Coefficients[Coefficients['band']==476.7].reset_index(drop=True)
-    
+        print(RBand)
         pca = PCA(n_components = n, whiten = True)
         RBand = pd.concat([RBand.iloc[:,6:].reset_index(drop=True),GBand.iloc[:,6:].reset_index(drop=True)],axis=1, ignore_index=True)
         if smot == True:
             sm = SMOTE()
             RBand, labels= sm.fit_resample(RBand, GBand['class'].ravel())
         
-        print(RBand)
+        
         final = pca.fit_transform((RBand))
         #RBand2, GBand2 = pd.DataFrame(data = {'Rdelta': RBand['delta'], 'Rvariance': RBand['variance']}), pd.DataFrame(data = {'Gdelta':GBand['delta'], 'Gvariance': GBand['variance']})
         if smot == True:
@@ -669,7 +681,10 @@ class ZTFData:
             
         return classifier.fit(Train, y)
         
-    def SupernovaTypeClassifierTrainer(self, Train, y, evaluate = True ,Ada = True, KNN = False,**kwargs):
+    def SupernovaTypeClassifierTrainer(self, Train, y, evaluate = True , smot = True,
+                                       Ada = True, KNN = False,roc = True, Rand = False,
+                                       grid = False, n = 1, fold = 3,n_components = 20, 
+                                       metric = 'accuracy', param_grid = None,**kwargs):
         """
         
 
@@ -705,30 +720,52 @@ class ZTFData:
             TrainingData, u = pd.concat([pd.DataFrame(data=y),pd.DataFrame(data=Train)],axis=1).reset_index(drop=True), y
         #else *** Remember to make this load in default training data
         svc = RandomForestClassifier(n_estimators = 30, min_samples_split = 6)
-        
+        TrainingData = TrainingData.sample(frac = 1).reset_index(drop=True)
         if kwargs:
             if Ada ==True:
                 classifier = AdaBoostClassifier(**kwargs)
             if KNN == True:
                 classifier = KNeighborsClassifier(**kwargs)
-            if (KNN == False) and (Ada == False) :
-                raise Exception("You must pick a classifier: Ada or KNN.")
+            if Rand == True:
+                #classifier = RandomForestClassifier(**kwargs)
+                classifier = BalancedRandomForestClassifier(**kwargs)
               
         else:
             classifier=AdaBoostClassifier(base_estimator=svc,n_estimators=30, learning_rate =2)
         #classifier = KNeighborsClassifier(n_neighbors=1500)
 
         if evaluate == True:
-            pipeline = imbpipeline(steps = [['classifier', classifier]])
-            stratified_kfold = StratifiedKFold(n_splits=3, shuffle=True)
-            print(cross_validate(pipeline, np.array(TrainingData),np.array(y),scoring = 'accuracy', cv = stratified_kfold))
-            y_pred = cross_val_predict(pipeline, np.array(TrainingData),np.array(y), cv = stratified_kfold)
-            conf_mat = confusion_matrix(y, y_pred)
+            
+            if smot == True:
+                pipeline = imbpipeline(steps = [['scale',MinMaxScaler()],['smote', SMOTE()],['classifier', classifier]])
+            if smot == False:
+                pipeline = imbpipeline(steps = [['scale',MinMaxScaler()],['classifier', classifier]])
+            stratified_kfold = StratifiedKFold(n_splits=fold, shuffle=True)
+            repeatstratified_kfold = RepeatedStratifiedKFold(n_splits=fold, n_repeats=n)
+            cross = cross_validate(pipeline, np.array(TrainingData.iloc[:,1:]),np.array(TrainingData.iloc[:,0]),scoring = metric, cv = repeatstratified_kfold, n_jobs = -1)
+            print(f'The mean {metric} over {fold} fold stratified crossvalidation repeated {n} times is {np.mean(cross["test_score"])}, with a standard deviation of {np.std(cross["test_score"])}')
+            y_pred = cross_val_predict(pipeline, np.array(TrainingData.iloc[:,1:]),np.array(TrainingData.iloc[:,0]), cv = stratified_kfold, n_jobs = -1)
+                        
+            #conf_mat = confusion_matrix(y, y_pred)
+            conf_mat = confusion_matrix(TrainingData.iloc[:,0], y_pred)
+            disp = ConfusionMatrixDisplay(confusion_matrix=conf_mat)
+            disp.plot(cmap = 'Blues')
+            
+            if grid == True:
+                clf = GridSearchCV(pipeline, param_grid, n_jobs = -1, cv = stratified_kfold, scoring = 'f1_micro', verbose = 1)
+                clf.fit(TrainingData.iloc[:,1:], TrainingData.iloc[:,0])
+                
+            
+               
+            
             plot_confusion_matrix1(conf_mat, ['Type 1a','Type 2', 'Type 1b/c', 'SLSN'], cmap = 'Blues')
+  
+        Classifier = pipeline.fit(TrainingData.iloc[:,1:], TrainingData.iloc[:,0])
         
-        smote2 = SMOTE()
-        x1, y1 = smote2.fit_resample(Train, u)
-        return classifier.fit(x1,y1)
+        if grid == False:
+            return Classifier
+        if grid == True:
+            return clf
     
 
 def plot_confusion_matrix1(cm,
